@@ -65,12 +65,13 @@ class App(customtkinter.CTk):
         usecols = ["Direction", "Date", "Measure", "Value", "Year"]
         data = pd.read_csv('data.csv', usecols=usecols)
         data = data[data['Direction'] == 'Exports'] # filter in the 'Exports' Direction
+        data.to_csv("test.csv")
         data['Month'] = pd.to_datetime(data['Date'], format='%d/%m/%Y').dt.strftime('%b') # create a new column for short month names
         monthly_data = data.groupby(['Year', 'Month', 'Measure'])['Value'].sum().reset_index() # group the data by year and month, and sum the Value column for $ and Tonnes measures separately
         
         month_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         monthly_data['Month'] = pd.Categorical(monthly_data['Month'], categories=month_order, ordered=True)
-        
+        monthly_data.to_csv("test.csv")
         dollars_data = monthly_data[monthly_data['Measure'] == '$'].pivot_table(index='Month', columns='Year', values='Value', aggfunc='sum') # create pivot tables with years as columns, months as rows, and the sum of values as values for $ and Tonnes measures separately
         tonnes_data = monthly_data[monthly_data['Measure'] == 'Tonnes'].pivot_table(index='Month', columns='Year', values='Value', aggfunc='sum')
         
@@ -87,7 +88,7 @@ class App(customtkinter.CTk):
         axs[1].set_xlabel('Month')
         axs[1].set_ylabel('Value (Tonnes)')
 
-        fig.tight_layout(pad=4.0) # adjust the subplots layout and spacing
+        fig.tight_layout(pad=3.0) # adjust the subplots layout and spacing
         mngr=plt.get_current_fig_manager()
         mngr.window.geometry("+661+210")
         plt.show()
