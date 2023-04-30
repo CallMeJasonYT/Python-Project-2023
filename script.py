@@ -22,7 +22,7 @@ class App(customtkinter.CTk):
         super().__init__()
 
         # Configure Main window and resize it
-        self.title("CustomTkinter complex_example.py")
+        self.title("Project Python 2023.py")
         self.geometry(f"{1280}x{720}")
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
