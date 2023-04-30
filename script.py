@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import urllib.request
 import os.path
+from sqlalchemy import create_engine
 
 url = "https://www.stats.govt.nz/assets/Uploads/Effects-of-COVID-19-on-trade/Effects-of-COVID-19-on-trade-At-15-December-2021-provisional/Download-data/effects-of-covid-19-on-trade-at-15-december-2021-provisional.csv"
 filename = "data.csv"
@@ -15,6 +16,9 @@ else:
 # ------------------------ GUI Code ------------------------#
 customtkinter.set_appearance_mode("System")
 customtkinter.set_default_color_theme("blue")
+
+engine = create_engine("mysql://root:root@localhost/covid_effects")
+engine.dispose()
 
 
 class App(customtkinter.CTk):
@@ -171,25 +175,35 @@ class App(customtkinter.CTk):
         )  # Ordering the Columns By Months
 
         # Create pivot tables with years as columns, months as rows, and the sum of values as values for $ and Tonnes measures separately
-        dollars_data = monthly_data[monthly_data["Measure"] == "$"].pivot_table(
+        monthly_dollars = monthly_data[monthly_data["Measure"] == "$"].pivot_table(
             index="Month", columns="Year", values="Value", aggfunc="sum"
         )
-        tonnes_data = monthly_data[monthly_data["Measure"] == "Tonnes"].pivot_table(
+        monthly_tonnes = monthly_data[monthly_data["Measure"] == "Tonnes"].pivot_table(
             index="Month", columns="Year", values="Value", aggfunc="sum"
         )
+
+        monthly_data[monthly_data["Measure"] == "$"].to_sql(
+            "monthly_profit", con=engine, if_exists="replace", index=False
+        )
+        monthly_data[monthly_data["Measure"] == "Tonnes"].to_sql(
+            "monthly_profit", con=engine, if_exists="append", index=False
+        )
+
+        monthly_dollars.to_csv('monthly_dollars.csv')
+        monthly_tonnes.to_csv('monthly_tonnes.csv')
 
         fig, axs = plt.subplots(
             num="Profit per Month", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
 
         # Plot the graphs
-        dollars_data.plot(kind="bar", ax=axs[0], legend=False)
+        monthly_dollars.plot(kind="bar", ax=axs[0], legend=False)
         axs[0].set_title("Monthly Value by Year ($)")
         axs[0].set_xlabel("Month")
         axs[0].set_ylabel("Value ($)")
 
         fig.legend(loc="upper right", ncol=len(month_order))
-        tonnes_data.plot(kind="bar", ax=axs[1], legend=False)
+        monthly_tonnes.plot(kind="bar", ax=axs[1], legend=False)
         axs[1].set_title("Monthly Value by Year (Tonnes)")
         axs[1].set_xlabel("Month")
         axs[1].set_ylabel("Value (Tonnes)")
@@ -229,22 +243,30 @@ class App(customtkinter.CTk):
         )
 
         # Create pivot tables with years as columns, countries as rows, and the sum of values as values for $ and Tonnes measures separately
-        dollars_data = data[data["Measure"] == "$"].pivot_table(
-            index="Country", values="Value", aggfunc="sum"
+        dollars_country = data[data["Measure"] == "$"]
+        tonnes_country = data[data["Measure"] == "Tonnes"]
+
+        dollars_country.to_sql(
+            "country_profit", con=engine, if_exists="replace", index=False
         )
-        tonnes_data = data[data["Measure"] == "Tonnes"].pivot_table(
-            index="Country", values="Value", aggfunc="sum"
+        tonnes_country.to_sql(
+            "country_profit", con=engine, if_exists="append", index=False
         )
+
+        dollars_country.to_csv('dollars_country.csv')
+        tonnes_country.to_csv('tonnes_country.csv')
 
         fig, axs = plt.subplots(
             num="Profit per Country", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
         # Plot the graphs
-        dollars_data.plot(kind="bar", ax=axs[0], legend=False)
+        dollars_country.plot(
+            x="Country", y="Value", kind="bar", ax=axs[0], legend=False
+        )
         axs[0].set_title("Summary Value by Country ($)")
         axs[0].set_xlabel("Country")
         axs[0].set_ylabel("Value ($)")
-        tonnes_data.plot(kind="bar", ax=axs[1], legend=False)
+        tonnes_country.plot(x="Country", y="Value", kind="bar", ax=axs[1], legend=False)
         axs[1].set_title("Summary Value by Country (Tonnes)")
         axs[1].set_xlabel("Country")
         axs[1].set_ylabel("Value (Tonnes)")
@@ -274,22 +296,32 @@ class App(customtkinter.CTk):
         )  # Group the data by Transport_Mode and Measure and sum the Value column for $ and Tonnes measures separately
 
         # Create pivot tables with Transport_Mode as rows, and the sum of values as values for $ and Tonnes measures separately
-        dollars_data = data[data["Measure"] == "$"].pivot_table(
-            index="Transport_Mode", values="Value", aggfunc="sum"
+        dollars_transport = data[data["Measure"] == "$"]
+        tonnes_transport = data[data["Measure"] == "Tonnes"]
+
+        dollars_transport.to_sql(
+            "transport_profit", con=engine, if_exists="replace", index=False
         )
-        tonnes_data = data[data["Measure"] == "Tonnes"].pivot_table(
-            index="Transport_Mode", values="Value", aggfunc="sum"
+        tonnes_transport.to_sql(
+            "transport_profit", con=engine, if_exists="append", index=False
         )
+
+        dollars_transport.to_csv('dollars_transport.csv')
+        tonnes_transport.to_csv('tonnes_transport.csv')
 
         fig, axs = plt.subplots(
             num="Profit per Transport", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
-        # Plot the graphS
-        dollars_data.plot(kind="bar", ax=axs[0], legend=False)
+        # Plot the graphs
+        dollars_transport.plot(
+            x="Transport_Mode", y="Value", kind="bar", ax=axs[0], legend=False
+        )
         axs[0].set_title("Summary Value by Transport Mode ($)")
         axs[0].set_xlabel("Transport")
         axs[0].set_ylabel("Value ($)")
-        tonnes_data.plot(kind="bar", ax=axs[1], legend=False)
+        tonnes_transport.plot(
+            x="Transport_Mode", y="Value", kind="bar", ax=axs[1], legend=False
+        )
         axs[1].set_title("Summary Value by Transport Mode (Tonnes)")
         axs[1].set_xlabel("Transport")
         axs[1].set_ylabel("Value (Tonnes)")
@@ -321,29 +353,37 @@ class App(customtkinter.CTk):
             data.groupby(["Day", "Measure"])["Value"].sum().reset_index()
         )  # Group the data by Day and Measure and sum the Value column for $ and Tonnes measures separately
 
-        month_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]  # Days Order
-        daily_data["Day"] = pd.Categorical(
-            daily_data["Day"], categories=month_order, ordered=True
-        )  # Ordering the Columns By Days
+        day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]  # Days Order
 
-        # Create pivot tables with Day as rows, and the sum of values as values for $ and Tonnes measures separately
-        dollars_data = daily_data[daily_data["Measure"] == "$"].pivot_table(
-            index="Day", values="Value", aggfunc="sum"
+        daily_data["Day"] = pd.Categorical(
+            daily_data["Day"], categories=day_order, ordered=True
+        )  # Ordering the Columns By Days
+        daily_data = daily_data.sort_values("Day")
+
+        # Creating seperate tables for the $ Measure and the Tonnes
+        dollars_per_day = daily_data[daily_data["Measure"] == "$"]
+        tonnes_per_day = daily_data[daily_data["Measure"] == "Tonnes"]
+
+        dollars_per_day.to_sql(
+            "profit_per_day", con=engine, if_exists="replace", index=False
         )
-        tonnes_data = daily_data[daily_data["Measure"] == "Tonnes"].pivot_table(
-            index="Day", values="Value", aggfunc="sum"
+        tonnes_per_day.to_sql(
+            "profit_per_day", con=engine, if_exists="append", index=False
         )
+
+        dollars_per_day.to_csv('dollars_per_day.csv')
+        tonnes_per_day.to_csv('tonnes_per_day.csv')
 
         fig, axs = plt.subplots(
             num="Profit per Day of Week", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
         # Plot the graphs
-        dollars_data.plot(kind="bar", ax=axs[0], legend=False)
+        dollars_per_day.plot(x="Day", y="Value", kind="bar", ax=axs[0], legend=False)
         axs[0].set_title("Total Daily Value ($)")
         axs[0].set_xlabel("Day")
         axs[0].set_ylabel("Value ($)")
 
-        tonnes_data.plot(kind="bar", ax=axs[1], legend=False)
+        tonnes_per_day.plot(x="Day", y="Value", kind="bar", ax=axs[1], legend=False)
         axs[1].set_title("Total Daily Value (Tonnes)")
         axs[1].set_xlabel("Day")
         axs[1].set_ylabel("Value (Tonnes)")
@@ -394,23 +434,33 @@ class App(customtkinter.CTk):
         )
 
         # Create pivot tables Commodity as rows and the sum of values as values for $ and Tonnes measures separately
-        dollars_data = data[data["Measure"] == "$"].pivot_table(
-            index="Commodity", values="Value", aggfunc="sum"
+        dollars_commodity = data[data["Measure"] == "$"]
+        tonnes_commodity = data[data["Measure"] == "Tonnes"]
+
+        dollars_commodity.to_sql(
+            "commodity_profit", con=engine, if_exists="replace", index=False
         )
-        tonnes_data = data[data["Measure"] == "Tonnes"].pivot_table(
-            index="Commodity", values="Value", aggfunc="sum"
+        tonnes_commodity.to_sql(
+            "commodity_profit", con=engine, if_exists="append", index=False
         )
+
+        dollars_commodity.to_csv('dollars_commodity.csv')
+        tonnes_commodity.to_csv('tonnes_commodity.csv')
 
         fig, axs = plt.subplots(
             num="Profit per Product", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
         # Plot the graphs
-        dollars_data.plot(kind="bar", ax=axs[0], legend=False)
+        dollars_commodity.plot(
+            x="Commodity", y="Value", kind="bar", ax=axs[0], legend=False
+        )
         axs[0].set_title("Total Commodity Value ($)")
         axs[0].set_xlabel("Commodity")
         axs[0].set_ylabel("Value ($)")
 
-        tonnes_data.plot(kind="bar", ax=axs[1], legend=False)
+        tonnes_commodity.plot(
+            x="Commodity", y="Value", kind="bar", ax=axs[1], legend=False
+        )
         axs[1].set_title("Total Commodity Value (Tonnes)")
         axs[1].set_xlabel("Commodity")
         axs[1].set_ylabel("Value (Tonnes)")
@@ -436,8 +486,17 @@ class App(customtkinter.CTk):
             (data["Direction"] == "Exports") & (data["Measure"] == "$")
         ]  # Accept only the 'Exports' Direction and $
         data["Date"] = pd.to_datetime(data["Date"], format="%d/%m/%Y")
-        data = data.groupby(pd.Grouper(key="Date", freq="M"))["Value"].sum()
-        top_5_months = data.sort_values(ascending=False).head(5)
+
+        data = (
+            data.groupby(pd.Grouper(key="Date", freq="M"))["Value"].sum().reset_index()
+        )
+        top_5_months = data.groupby(pd.Grouper(key="Date", freq="M"))["Value"].sum()
+        data = data.sort_values(by="Value", ascending=False).head(5)
+        top_5_months = top_5_months.sort_values(ascending=False).head(5)
+
+        data.to_sql("top5_months", con=engine, if_exists="replace", index=False)
+
+        top_5_months.to_csv('top_5_months.csv')
 
         plt.figure(
             figsize=(9.39, 6.48), num="5 Most Profitable Months"
@@ -501,12 +560,16 @@ class App(customtkinter.CTk):
                 "E-Machines",
             ],
         )
+        data = data.groupby(["Country", "Commodity"])["Value"].sum().reset_index()
+        data.to_sql("top5_products", con=engine, if_exists="replace", index=False)
 
         # Group data by country and commodity, and calculate total value
-        grouped = data.groupby(["Country", "Commodity"])["Value"].sum()
+        top5_products = data.groupby(["Country", "Commodity"])["Value"].sum()
+
+        top5_products.to_csv('top_5_products.csv')
 
         # Plot the top 5 commodities for each country
-        countries = grouped.index.levels[0]
+        countries = top5_products.index.levels[0]
         num_plots = len(countries)
         num_rows = 3
         num_cols = -(-num_plots // num_rows)
@@ -517,12 +580,13 @@ class App(customtkinter.CTk):
             num="5 Most Profitable Products",
         )
         for i, country in enumerate(countries):
-            top_commodities = grouped.loc[country].nlargest(5)
+            top_commodities = top5_products.loc[country].nlargest(5)
             num_commodities = min(6, len(top_commodities))
             top_commodities = top_commodities[:num_commodities]
             row = i // num_cols
             col = i % num_cols
             ax = axs[row, col]
+            ax.set_ylabel("Value ($)")
             ax.set_title(country)
             ax.bar(top_commodities.index, top_commodities.values)
             ax.tick_params(axis="x", rotation=90)
@@ -574,6 +638,14 @@ class App(customtkinter.CTk):
         best_days = data.loc[
             data.groupby("Commodity")["Value"].idxmax()
         ]  # Grouping while Identifying the max
+        
+        best_days_per_product= best_days.loc[:, ["Commodity", "Date", "Value"]]
+
+        best_days_per_product.to_sql(
+            "best_days_per_product", con=engine, if_exists="replace", index=False
+        )
+
+        best_days_per_product.to_csv('best_days_per_product.csv')
 
         num_commodities = len(best_days)  # Number of commodities
         num_cols = min(num_commodities, 4)
@@ -588,7 +660,7 @@ class App(customtkinter.CTk):
             ax = axs[i // num_cols, i % num_cols]
             ax.bar(row["Weekday"], row["Value"])
             ax.set_title(row["Commodity"])
-            ax.set_ylabel("Value($)", fontsize=14, labelpad=10)
+            ax.set_ylabel("Value($)")
 
         # Remove any empty plots
         for i in range(num_commodities, num_rows * num_cols):
