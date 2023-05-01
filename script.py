@@ -17,15 +17,16 @@ else:
 customtkinter.set_appearance_mode("System")
 customtkinter.set_default_color_theme("blue")
 
-engine = create_engine("mysql://root:root@localhost/covid_effects")
+engine = create_engine(
+    "mysql://root:root@localhost/covid_effects"
+)  # Engine Creation for SQL Connection
 engine.dispose()
-
 
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        # Configure Main window and resize it
+        # Configure Main window, center it and resize it
         self.title("Project Python 2023.py")
         self.geometry(f"{1280}x{720}")
         screen_width = self.winfo_screenwidth()
@@ -145,7 +146,7 @@ class App(customtkinter.CTk):
         ]  # Define the Used Columns for this Graph
         data = pd.read_csv(
             "data.csv", usecols=usecols
-        )  # Read the .csv file and save it
+        )  # Read the .csv file and save it in a DataFrame
         data = data[
             data["Direction"] == "Exports"
         ]  # Accept only the 'Exports' Direction
@@ -182,6 +183,7 @@ class App(customtkinter.CTk):
             index="Month", columns="Year", values="Value", aggfunc="sum"
         )
 
+        # Passing the data into the SQL Database
         monthly_data[monthly_data["Measure"] == "$"].to_sql(
             "monthly_profit", con=engine, if_exists="replace", index=False
         )
@@ -189,8 +191,9 @@ class App(customtkinter.CTk):
             "monthly_profit", con=engine, if_exists="append", index=False
         )
 
-        monthly_dollars.to_csv('monthly_dollars.csv')
-        monthly_tonnes.to_csv('monthly_tonnes.csv')
+        # Exporting the data into .csv files
+        monthly_dollars.to_csv("monthly_dollars.csv")
+        monthly_tonnes.to_csv("monthly_tonnes.csv")
 
         fig, axs = plt.subplots(
             num="Profit per Month", nrows=2, figsize=(9.39, 6.48)
@@ -231,6 +234,8 @@ class App(customtkinter.CTk):
         data = (
             data.groupby(["Country", "Measure"])["Value"].sum().reset_index()
         )  # Group the Value by Country and Measure and sum for $ and Tonnes measures separately
+
+        # Make the data names Shorter
         data = data.replace(
             [
                 "East Asia (excluding China)",
@@ -242,10 +247,11 @@ class App(customtkinter.CTk):
             ["EAsia-China", "EU (27)", "Total-China", "UK", "USA"],
         )
 
-        # Create pivot tables with years as columns, countries as rows, and the sum of values as values for $ and Tonnes measures separately
+        # Diverse the data based on the Measure Value
         dollars_country = data[data["Measure"] == "$"]
         tonnes_country = data[data["Measure"] == "Tonnes"]
 
+        # Passing the data into the SQL Database
         dollars_country.to_sql(
             "country_profit", con=engine, if_exists="replace", index=False
         )
@@ -253,12 +259,14 @@ class App(customtkinter.CTk):
             "country_profit", con=engine, if_exists="append", index=False
         )
 
-        dollars_country.to_csv('dollars_country.csv')
-        tonnes_country.to_csv('tonnes_country.csv')
+        # Exporting the data into .csv files
+        dollars_country.to_csv("dollars_country.csv")
+        tonnes_country.to_csv("tonnes_country.csv")
 
         fig, axs = plt.subplots(
             num="Profit per Country", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
+
         # Plot the graphs
         dollars_country.plot(
             x="Country", y="Value", kind="bar", ax=axs[0], legend=False
@@ -295,10 +303,11 @@ class App(customtkinter.CTk):
             data.groupby(["Transport_Mode", "Measure"])["Value"].sum().reset_index()
         )  # Group the data by Transport_Mode and Measure and sum the Value column for $ and Tonnes measures separately
 
-        # Create pivot tables with Transport_Mode as rows, and the sum of values as values for $ and Tonnes measures separately
+        # Diverse the data based on the Measure Value
         dollars_transport = data[data["Measure"] == "$"]
         tonnes_transport = data[data["Measure"] == "Tonnes"]
 
+        # Passing the data into the SQL Database
         dollars_transport.to_sql(
             "transport_profit", con=engine, if_exists="replace", index=False
         )
@@ -306,8 +315,9 @@ class App(customtkinter.CTk):
             "transport_profit", con=engine, if_exists="append", index=False
         )
 
-        dollars_transport.to_csv('dollars_transport.csv')
-        tonnes_transport.to_csv('tonnes_transport.csv')
+        # Exporting the data into .csv files
+        dollars_transport.to_csv("dollars_transport.csv")
+        tonnes_transport.to_csv("tonnes_transport.csv")
 
         fig, axs = plt.subplots(
             num="Profit per Transport", nrows=2, figsize=(9.39, 6.48)
@@ -358,12 +368,13 @@ class App(customtkinter.CTk):
         daily_data["Day"] = pd.Categorical(
             daily_data["Day"], categories=day_order, ordered=True
         )  # Ordering the Columns By Days
-        daily_data = daily_data.sort_values("Day")
+        daily_data = daily_data.sort_values("Day")  # Sorting the Columns by Day
 
         # Creating seperate tables for the $ Measure and the Tonnes
         dollars_per_day = daily_data[daily_data["Measure"] == "$"]
         tonnes_per_day = daily_data[daily_data["Measure"] == "Tonnes"]
 
+        # Passing the data into the SQL Database
         dollars_per_day.to_sql(
             "profit_per_day", con=engine, if_exists="replace", index=False
         )
@@ -371,12 +382,14 @@ class App(customtkinter.CTk):
             "profit_per_day", con=engine, if_exists="append", index=False
         )
 
-        dollars_per_day.to_csv('dollars_per_day.csv')
-        tonnes_per_day.to_csv('tonnes_per_day.csv')
+        # Exporting the data into .csv files
+        dollars_per_day.to_csv("dollars_per_day.csv")
+        tonnes_per_day.to_csv("tonnes_per_day.csv")
 
         fig, axs = plt.subplots(
             num="Profit per Day of Week", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
+
         # Plot the graphs
         dollars_per_day.plot(x="Day", y="Value", kind="bar", ax=axs[0], legend=False)
         axs[0].set_title("Total Daily Value ($)")
@@ -433,10 +446,11 @@ class App(customtkinter.CTk):
             ],
         )
 
-        # Create pivot tables Commodity as rows and the sum of values as values for $ and Tonnes measures separately
+        # Diverse the data based on the Measure Value
         dollars_commodity = data[data["Measure"] == "$"]
         tonnes_commodity = data[data["Measure"] == "Tonnes"]
 
+        # Passing the data into the SQL Database
         dollars_commodity.to_sql(
             "commodity_profit", con=engine, if_exists="replace", index=False
         )
@@ -444,12 +458,14 @@ class App(customtkinter.CTk):
             "commodity_profit", con=engine, if_exists="append", index=False
         )
 
-        dollars_commodity.to_csv('dollars_commodity.csv')
-        tonnes_commodity.to_csv('tonnes_commodity.csv')
+        # Exporting the data into .csv files
+        dollars_commodity.to_csv("dollars_commodity.csv")
+        tonnes_commodity.to_csv("tonnes_commodity.csv")
 
         fig, axs = plt.subplots(
             num="Profit per Product", nrows=2, figsize=(9.39, 6.48)
         )  # Create the bar charts as subplots
+
         # Plot the graphs
         dollars_commodity.plot(
             x="Commodity", y="Value", kind="bar", ax=axs[0], legend=False
@@ -494,9 +510,11 @@ class App(customtkinter.CTk):
         data = data.sort_values(by="Value", ascending=False).head(5)
         top_5_months = top_5_months.sort_values(ascending=False).head(5)
 
+        # Passing the data into the SQL Database
         data.to_sql("top5_months", con=engine, if_exists="replace", index=False)
 
-        top_5_months.to_csv('top_5_months.csv')
+        # Exporting the data into .csv files
+        top_5_months.to_csv("top_5_months.csv")
 
         plt.figure(
             figsize=(9.39, 6.48), num="5 Most Profitable Months"
@@ -530,6 +548,7 @@ class App(customtkinter.CTk):
         )  # Read the .csv file and save it
         data = data[(data["Direction"] == "Exports") & (data["Measure"] == "$")]
 
+        # Make the data names Shorter
         data = data.replace(
             [
                 "East Asia (excluding China)",
@@ -560,13 +579,18 @@ class App(customtkinter.CTk):
                 "E-Machines",
             ],
         )
+
+        # Grouping the data based on Country and Commodity while calculating the sum of Value and resetting the index
         data = data.groupby(["Country", "Commodity"])["Value"].sum().reset_index()
+
+        # Passing the data into the SQL Database
         data.to_sql("top5_products", con=engine, if_exists="replace", index=False)
 
-        # Group data by country and commodity, and calculate total value
+        # Group data by country and commodity, and calculate total Value
         top5_products = data.groupby(["Country", "Commodity"])["Value"].sum()
 
-        top5_products.to_csv('top_5_products.csv')
+        # Exporting the data into .csv files
+        top5_products.to_csv("top_5_products.csv")
 
         # Plot the top 5 commodities for each country
         countries = top5_products.index.levels[0]
@@ -614,6 +638,7 @@ class App(customtkinter.CTk):
         )  # Read the .csv file and save it
         data = data[(data["Direction"] == "Exports") & (data["Measure"] == "$")]
 
+        # Make the data names Shorter
         data = data.replace(
             [
                 "Milk powder, butter, and cheese",
@@ -638,14 +663,16 @@ class App(customtkinter.CTk):
         best_days = data.loc[
             data.groupby("Commodity")["Value"].idxmax()
         ]  # Grouping while Identifying the max
-        
-        best_days_per_product= best_days.loc[:, ["Commodity", "Date", "Value"]]
 
+        best_days_per_product = best_days.loc[:, ["Commodity", "Date", "Value"]]
+
+        # Passing the data into the SQL Database
         best_days_per_product.to_sql(
             "best_days_per_product", con=engine, if_exists="replace", index=False
         )
 
-        best_days_per_product.to_csv('best_days_per_product.csv')
+        # Exporting the data into .csv files
+        best_days_per_product.to_csv("best_days_per_product.csv")
 
         num_commodities = len(best_days)  # Number of commodities
         num_cols = min(num_commodities, 4)
