@@ -154,7 +154,7 @@ class App(customtkinter.CTk):
             "%b"
         )  # Create a new column for short month names
         monthly_data = (
-            data.groupby(["Year", "Month", "Measure"])["Value"].sum().reset_index()
+            data.groupby(["Month", "Measure"])["Value"].sum().reset_index()
         )  # Group the data by Year, Month and Measure and sum the Value column for $ and Tonnes measures separately
 
         month_order = [
@@ -177,10 +177,10 @@ class App(customtkinter.CTk):
 
         # Create pivot tables with years as columns, months as rows, and the sum of values as values for $ and Tonnes measures separately
         monthly_dollars = monthly_data[monthly_data["Measure"] == "$"].pivot_table(
-            index="Month", columns="Year", values="Value", aggfunc="sum"
+            index="Month", values="Value", aggfunc="sum"
         )
         monthly_tonnes = monthly_data[monthly_data["Measure"] == "Tonnes"].pivot_table(
-            index="Month", columns="Year", values="Value", aggfunc="sum"
+            index="Month", values="Value", aggfunc="sum"
         )
 
         # Passing the data into the SQL Database
@@ -205,7 +205,6 @@ class App(customtkinter.CTk):
         axs[0].set_xlabel("Month")
         axs[0].set_ylabel("Value ($)")
 
-        fig.legend(loc="upper right", ncol=len(month_order))
         monthly_tonnes.plot(kind="bar", ax=axs[1], legend=False)
         axs[1].set_title("Monthly Value by Year (Tonnes)")
         axs[1].set_xlabel("Month")
